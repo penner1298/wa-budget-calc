@@ -155,17 +155,17 @@ const Calculator = () => {
 
   const handleShareX = () => {
     const text = getShareText();
-    const url = "https://YourWebsite.com";
+    const url = "https://wa-budget-calc.vercel.app";
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}&hashtags=AffordabilityFirst`, '_blank');
   };
 
   const handleShareFB = () => {
-    const url = "https://YourWebsite.com";
+    const url = "https://wa-budget-calc.vercel.app";
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
   };
 
   const handleCopy = () => {
-    const text = `${getShareText()} https://YourWebsite.com`;
+    const text = `${getShareText()} https://wa-budget-calc.vercel.app`;
     
     // Create a temporary text area element to use execCommand
     // This is more robust in iframe environments than navigator.clipboard
