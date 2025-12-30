@@ -88,7 +88,16 @@ const Calculator = () => {
   }, [amount, mode]);
 
   const handleAmountChange = (e) => {
-    const val = parseFloat(e.target.value);
+    // Remove commas and non-numeric characters (keep decimals if needed, but usually salary is int)
+    const rawValue = e.target.value.replace(/,/g, '');
+    
+    // Handle empty input gracefully (prevent NaN or 0 sticking)
+    if (rawValue === '') {
+      setAmount(0);
+      return;
+    }
+
+    const val = parseFloat(rawValue);
     setAmount(isNaN(val) ? 0 : val);
   };
 
@@ -175,7 +184,6 @@ const Calculator = () => {
   const opportunityItems = [
     { label: "Tanks of Gas", cost: 65, icon: Fuel, color: "text-yellow-400", bg: "bg-yellow-400/10" },
     { label: "Weeks of Groceries", cost: 250, icon: ShoppingCart, color: "text-green-400", bg: "bg-green-400/10" },
-    { label: "Brand New iPhones", cost: 999, icon: Smartphone, color: "text-blue-400", bg: "bg-blue-400/10" },
     { label: "Months of Rent", cost: 1800, icon: Home, color: "text-purple-400", bg: "bg-purple-400/10" },
   ];
 
@@ -241,11 +249,13 @@ const Calculator = () => {
                   <DollarSign className={`transition-colors ${inputFocused ? 'text-blue-500' : 'text-slate-600'}`} size={32} />
                 </div>
                 <input
-                  type="number"
-                  value={amount}
+                  type="text" // Use text to allow formatting
+                  inputMode="numeric" // Mobile keyboard optimization
+                  value={amount === 0 ? '' : amount.toLocaleString()} // Show empty if 0, else formatted
                   onChange={handleAmountChange}
                   onFocus={() => setInputFocused(true)}
                   onBlur={() => setInputFocused(false)}
+                  placeholder="0"
                   className={`w-full bg-slate-950 border-2 rounded-2xl py-6 pl-14 pr-6 text-5xl md:text-6xl font-black text-center text-white transition-all outline-none ${inputFocused ? 'border-blue-500 shadow-[0_0_40px_rgba(59,130,246,0.2)]' : 'border-slate-800 hover:border-slate-700'}`}
                 />
                 <div className="absolute -bottom-8 left-0 right-0 text-center text-slate-500 text-xs uppercase tracking-widest font-bold">
@@ -410,11 +420,11 @@ const Calculator = () => {
               What could you have bought instead?
             </h3>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex flex-wrap justify-center gap-4">
               {opportunityItems.map((item, idx) => {
                 const quantity = Math.floor(taxGap / item.cost);
                 return (
-                  <div key={idx} className={`${item.bg} border border-slate-800 rounded-2xl p-4 text-center hover:scale-105 transition-transform duration-200`}>
+                  <div key={idx} className={`${item.bg} border border-slate-800 rounded-2xl p-6 text-center hover:scale-105 transition-transform duration-200 w-full sm:w-64`}>
                     <div className={`mx-auto w-12 h-12 rounded-full bg-slate-900 flex items-center justify-center mb-3 ${item.color}`}>
                       <item.icon size={24} />
                     </div>
