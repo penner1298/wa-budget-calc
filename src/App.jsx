@@ -136,6 +136,16 @@ const Calculator = () => {
   const animatedFairCost = useSmoothCount(fairCost, 300);
   const animatedActualCost = useSmoothCount(actualCost, 300);
 
+  // Input Display Logic (Handles formatting for slider vs typing)
+  const getInputDisplayValue = () => {
+    if (amount === 0) return '';
+    if (inputFocused) return amount; // Show raw number while typing
+    if (mode === 'hourly') {
+      return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return amount.toLocaleString();
+  };
+
   // Sharing
   const getShareText = () => {
     return `The WA State budget grew 130% since 2015. My salary didn't. I'm losing ${formatMoney(taxGap)}/yr in hidden "Excess Spending Costs". See what you lost:`;
@@ -171,7 +181,7 @@ const Calculator = () => {
   // --- BENCHMARKS DATA ---
   // Color Strategy: Villain (Red), Hero (Blue), Context (Slate - BRIGHTENED for visibility)
   const benchmarks = [
-    { label: "State Budget", growth: 130, color: "bg-red-600", text: "text-red-500", icon: AlertTriangle, width: "100%" },
+    { label: "State Budget Growth", growth: 130, color: "bg-red-600", text: "text-red-500", icon: AlertTriangle, width: "100%" },
     { label: "Health Insurance", growth: 112, color: "bg-slate-500", text: "text-slate-400", icon: Heart, width: "86%" },
     { label: "Housing Prices", growth: 85, color: "bg-slate-500", text: "text-slate-400", icon: Home, width: "65%" },
     { label: "The Economy (GDP)", growth: 65, color: "bg-slate-500", text: "text-slate-400", icon: BarChart3, width: "50%" },
@@ -179,6 +189,17 @@ const Calculator = () => {
     { label: "Inflation (CPI)", growth: 32, color: "bg-slate-600", text: "text-slate-500", icon: TrendingUp, width: "25%" },
     { label: "Population", growth: 14, color: "bg-slate-600", text: "text-slate-500", icon: Users, width: "11%" },
   ];
+
+  // Helper to calculate relative thickness
+  const getBarHeight = (growth) => {
+    if (growth >= 130) return 'h-9'; // Thickest (Villain)
+    if (growth >= 100) return 'h-8';
+    if (growth >= 80) return 'h-7';
+    if (growth >= 60) return 'h-6';
+    if (growth >= 40) return 'h-5';
+    if (growth >= 20) return 'h-4';
+    return 'h-3'; // Thinnest
+  };
 
   // --- OPPORTUNITY COST ITEMS ---
   const opportunityItems = [
@@ -251,7 +272,7 @@ const Calculator = () => {
                 <input
                   type="text" // Use text to allow formatting
                   inputMode="numeric" // Mobile keyboard optimization
-                  value={amount === 0 ? '' : amount.toLocaleString()} // Show empty if 0, else formatted
+                  value={getInputDisplayValue()} // Use new logic for formatting
                   onChange={handleAmountChange}
                   onFocus={() => setInputFocused(true)}
                   onBlur={() => setInputFocused(false)}
@@ -278,18 +299,19 @@ const Calculator = () => {
           </div>
 
           {/* --- DYNAMIC VISUALIZATION & RECEIPT --- */}
+          {/* Removed overflow-hidden to fix tooltip clipping */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 items-center">
             
             {/* Left: Dynamic Bar Chart (Replaces Static Leaderboard) */}
-            <div className="bg-slate-950 rounded-2xl border border-slate-800 p-6 md:p-8 relative overflow-hidden">
+            <div className="bg-slate-950 rounded-2xl border border-slate-800 p-6 md:p-8 relative">
                <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
                  <Scale className="text-blue-400"/> Your Real Burden
                </h3>
                
                <div className="flex gap-4 md:gap-8 items-end justify-center h-64 w-full px-4">
                   
-                  {/* Bar 1: Inflation (Fair) */}
-                  <div className="w-full max-w-[120px] flex flex-col justify-end h-full group">
+                  {/* Bar 1: Inflation (Fair) - MADE THINNER */}
+                  <div className="w-full max-w-[80px] flex flex-col justify-end h-full group">
                      <div className="text-center mb-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <span className="text-xs text-blue-300 font-bold block">FAIR SHARE</span>
                      </div>
@@ -311,8 +333,8 @@ const Calculator = () => {
                      <ArrowRight size={24} />
                   </div>
 
-                  {/* Bar 2: Actual (Govt Growth) */}
-                  <div className="w-full max-w-[120px] flex flex-col justify-end h-full group">
+                  {/* Bar 2: Actual (Govt Growth) - MADE SIGNIFICANTLY THICKER */}
+                  <div className="w-full max-w-[160px] flex flex-col justify-end h-full group">
                      <div className="text-center mb-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <span className="text-xs text-red-300 font-bold block">ACTUAL COST</span>
                      </div>
@@ -375,7 +397,6 @@ const Calculator = () => {
                      <p className="text-[10px] text-slate-500 leading-tight mb-4">
                        This amount represents the "Excess Spending Cost" hidden in your cost of living due to state spending outpacing inflation.
                      </p>
-                     <div className="w-32 h-8 bg-slate-900 mx-auto rounded-sm opacity-20"></div>
                      <span className="text-[9px] text-slate-400">DO NOT PAY - ALREADY DEDUCTED</span>
                   </div>
                </div>
@@ -393,23 +414,28 @@ const Calculator = () => {
                </div>
 
                <div className="space-y-3">
-                  {benchmarks.map((item, idx) => (
-                    <div key={idx} className="relative">
-                      <div className="flex justify-between text-xs font-bold uppercase tracking-wider mb-1 px-1">
-                        <span className={`flex items-center gap-2 ${item.text}`}>
-                          <item.icon size={14} /> {item.label}
-                        </span>
-                        <span className="text-slate-300">+{item.growth}%</span>
-                      </div>
-                      <div className="h-6 bg-slate-900 rounded-full overflow-hidden relative border border-slate-800">
-                        <div 
-                          className={`absolute top-0 left-0 h-full ${item.color} transition-all duration-1000 ease-out`}
-                          style={{ width: item.width }}
-                        >
+                  {benchmarks.map((item, idx) => {
+                    const heightClass = getBarHeight(item.growth);
+                    const fontSize = item.growth >= 100 ? "text-sm" : "text-xs";
+                    
+                    return (
+                      <div key={idx} className="relative">
+                        <div className={`flex justify-between ${fontSize} font-bold uppercase tracking-wider mb-1 px-1`}>
+                          <span className={`flex items-center gap-2 ${item.text}`}>
+                            <item.icon size={item.growth >= 100 ? 18 : 14} /> {item.label}
+                          </span>
+                          <span className="text-slate-300">+{item.growth}%</span>
+                        </div>
+                        <div className={`${heightClass} bg-slate-900 rounded-full overflow-hidden relative border border-slate-800`}>
+                          <div 
+                            className={`absolute top-0 left-0 h-full ${item.color} transition-all duration-1000 ease-out`}
+                            style={{ width: item.width }}
+                          >
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                </div>
           </div>
 
@@ -440,7 +466,7 @@ const Calculator = () => {
             </p>
           </div>
 
-          {/* HEADLINES WALL OF SHAME */}
+          {/* HEADLINES WALL OF SHAME - FIXED HOVER JITTER */}
           <div className="border-t border-slate-800 pt-10 pb-10">
              <div className="text-center mb-10">
                <h3 className="text-3xl font-bold text-white">What did you get for that money?</h3>
@@ -451,21 +477,24 @@ const Calculator = () => {
              
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-2">
                 {headlines.map((item, idx) => (
-                  <div key={idx} className="bg-slate-900 p-6 rounded-xl border border-slate-800 relative overflow-hidden group hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(220,38,38,0.15)] hover:border-red-500/50 transition-all duration-300 cursor-default">
-                      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-red-950/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <div className="relative z-10">
-                        <div className={`flex items-center gap-2 font-bold mb-3 text-xs uppercase tracking-wider ${item.color === 'blue' ? 'text-blue-400' : 'text-red-400'}`}>
-                          <div className={`p-2 rounded-lg ${item.color === 'blue' ? 'bg-blue-950' : 'bg-red-950'}`}>
-                            <item.icon size={18}/> 
+                  // Wrapper div to prevent hover jitter (keeps hit area stable)
+                  <div key={idx} className="group relative">
+                    <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 relative overflow-hidden transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-[0_0_30px_rgba(220,38,38,0.15)] group-hover:border-red-500/50 cursor-default h-full">
+                        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-red-950/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative z-10">
+                          <div className={`flex items-center gap-2 font-bold mb-3 text-xs uppercase tracking-wider ${item.color === 'blue' ? 'text-blue-400' : 'text-red-400'}`}>
+                            <div className={`p-2 rounded-lg ${item.color === 'blue' ? 'bg-blue-950' : 'bg-red-950'}`}>
+                              <item.icon size={18}/> 
+                            </div>
+                            {item.category}
                           </div>
-                          {item.category}
+                          <h4 className="text-white font-bold text-lg mb-2 leading-tight group-hover:text-red-200 transition-colors">{item.title}</h4>
+                          <div className={`inline-block px-2 py-1 rounded text-xs font-bold mb-3 ${item.color === 'blue' ? 'bg-blue-900/50 text-blue-200' : 'bg-red-900/50 text-red-200'}`}>
+                            {item.stat}
+                          </div>
+                          <p className="text-slate-400 text-sm leading-snug group-hover:text-slate-300 transition-colors">{item.desc}</p>
                         </div>
-                        <h4 className="text-white font-bold text-lg mb-2 leading-tight group-hover:text-red-200 transition-colors">{item.title}</h4>
-                        <div className={`inline-block px-2 py-1 rounded text-xs font-bold mb-3 ${item.color === 'blue' ? 'bg-blue-900/50 text-blue-200' : 'bg-red-900/50 text-red-200'}`}>
-                          {item.stat}
-                        </div>
-                        <p className="text-slate-400 text-sm leading-snug group-hover:text-slate-300 transition-colors">{item.desc}</p>
-                      </div>
+                    </div>
                   </div>
                 ))}
              </div>
@@ -473,7 +502,7 @@ const Calculator = () => {
 
           {/* ACTIONS */}
           <div className="bg-slate-950 rounded-2xl p-8 text-center border border-slate-800">
-             <h3 className="text-white font-bold text-lg mb-6">Share your Overpayment Receipt</h3>
+             <h3 className="text-white font-bold text-lg mb-6">Share your Runaway WA State Spending Receipt</h3>
              
              <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-2xl mx-auto">
                 <button 
